@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Day · Central EA (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --border: #e6e8ec;
+    --text: #1f2328;
+    --muted: #6b7280;
+    --icon: #4b5563;
+    --blue: #3b9be8;
+    --blue-soft: #eaf4fd;
+    --red: #e5484d;
+    --orange: #f5a524;
+    --green: #2f9e6b;
+    --purple: #7a5ccf;
+    --grey: #c3c8cf;
+
+    /* Areas changed for the insurance prototype: very subtle tint */
+    --ours: #fbf9ff;
+    --ours-line: #ebe5fb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); font-size: 15px; }
+  a { color: inherit; }
+  svg.i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+  /* Top bar */
+  .topbar { height: 64px; display: flex; align-items: center; gap: 18px; padding: 0 24px; background: var(--bg); }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 19px; }
+  .brand .chev { color: var(--muted); }
+  .gsearch { flex: 1; max-width: 1240px; margin-left: 40px; display: flex; align-items: center; gap: 10px; padding: 9px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--muted); }
+  .gsearch kbd { margin-left: auto; font: 12px ui-monospace, monospace; border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; color: var(--muted); }
+  .topbar .spacer { flex: 1; }
+  .icon-btn { background: none; border: 0; padding: 4px; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 6px; font: inherit; font-size: 16px; font-weight: 500; }
+  .bell { position: relative; }
+  .bell .badge { position: absolute; top: -4px; right: -6px; background: var(--red); color: #fff; font-size: 10px; font-weight: 600; border-radius: 999px; padding: 1px 5px; border: 2px solid var(--bg); }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: #3a2e2a; color: #fff; display: grid; place-items: center; font-weight: 600; }
+
+  /* Layout */
+  .layout { display: flex; gap: 20px; padding: 0 24px 24px; }
+  .sidebar { width: 270px; flex-shrink: 0; }
+  .trial { width: 100%; display: flex; align-items: center; gap: 10px; justify-content: center; background: var(--blue); color: #fff; border: 0; border-radius: 8px; padding: 12px; font: inherit; font-weight: 600; font-size: 14px; margin: 8px 0 18px; cursor: pointer; }
+  .nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 8px; color: var(--icon); text-decoration: none; font-size: 15px; }
+  .nav a:hover { background: #eceef1; }
+  .nav a .end { margin-left: auto; color: var(--muted); font-size: 14px; }
+  .nav a.active { background: var(--blue-soft); color: var(--blue); border: 1px solid #d3e8fa; }
+  .nav .count { margin-left: auto; font-size: 12px; color: var(--blue); background: var(--blue-soft); border-radius: 999px; padding: 1px 8px; }
+  .nav .sub { padding-left: 22px; }
+  .nav .label { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); padding: 16px 12px 6px; }
+  .nav hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
+  .me { display: flex; align-items: center; gap: 10px; margin-top: 28px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); font-weight: 500; }
+  .me .ws-icon { width: 24px; height: 24px; border-radius: 6px; background: var(--blue); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 600; }
+  .me .i { margin-left: auto; color: var(--muted); }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; background: var(--surface); border-radius: 16px; border: 1px solid var(--border); padding: 22px 30px 30px; min-height: calc(100vh - 88px); }
+  .banner { display: flex; align-items: center; gap: 18px; padding: 14px 20px; border: 1px solid var(--border); border-radius: 12px; }
+  .banner .logo-g { width: 52px; height: 52px; border-radius: 50%; border: 6px solid #e8f1fc; display: grid; place-items: center; color: var(--blue); flex-shrink: 0; }
+  .banner h3 { margin: 0; font-size: 18px; font-weight: 600; }
+  .banner p { margin: 4px 0 0; color: var(--icon); }
+  .banner .btn-blue { margin-left: auto; }
+  .btn-blue { background: var(--blue); color: #fff; border: 0; border-radius: 8px; padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+
+  .greet { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 26px 0 18px; }
+  .greet h1 { margin: 0 10px 0 0; font-size: 22px; font-weight: 600; }
+  .pill { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 14px; color: var(--icon); }
+  .pill b { color: var(--text); }
+  .pill.blue { background: #eef5fd; } .pill.red { background: #fdeeee; } .pill.green { background: #eaf7f0; }
+  .greet .sample { margin-left: auto; color: var(--muted); font-size: 14px; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 24px; align-items: start; }
+  .ask { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 18px; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); }
+  .ask span { flex: 1; }
+  .voice { display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; color: var(--blue); font-weight: 500; }
+  .send { width: 40px; height: 40px; border-radius: 50%; background: var(--blue); color: #fff; display: grid; place-items: center; }
+
+  .panel { margin-top: 22px; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+  .panel.ours, .ours { background: var(--ours); border-color: var(--ours-line); }
+  .panel-head { display: flex; align-items: center; gap: 14px; }
+  .panel-head .doc { width: 46px; height: 46px; border-radius: 10px; background: var(--blue-soft); color: var(--blue); display: grid; place-items: center; }
+  .panel-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .panel-head .sub { color: var(--muted); margin-top: 2px; }
+  .panel-head .tools { margin-left: auto; display: flex; gap: 16px; color: var(--blue); }
+  .section-label { margin: 22px 0 8px; font-size: 13px; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
+
+  .updates { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+  .updates li { display: flex; align-items: baseline; gap: 12px; line-height: 1.45; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transform: translateY(-2px); background: var(--c); }
+  .tag { color: var(--blue); font-weight: 500; font-size: 14px; letter-spacing: .02em; white-space: nowrap; }
+  .updates .time { margin-left: auto; color: var(--muted); font-size: 14px; white-space: nowrap; }
+
+  /* To-dos */
+  .tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border); margin-top: 12px; }
+  .tab { padding: 0 16px 10px; border-bottom: 2px solid var(--blue); color: var(--blue); font-weight: 500; display: flex; align-items: center; gap: 8px; margin-bottom: -1px; }
+  .tab .n { font-size: 12px; background: #fdeeee; color: var(--red); border-radius: 999px; padding: 1px 8px; font-weight: 600; }
+  .todos { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+  .todo { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+  .todo .when { border-right: 1px solid var(--border); padding-right: 14px; }
+  .todo .d { font-weight: 600; }
+  .todo .t { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .todo .name { font-weight: 600; font-size: 16px; }
+  .todo .why { color: var(--icon); font-size: 14px; margin-top: 3px; }
+  .status { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; border: 1px solid; }
+  .status.missing { color: #b7791f; background: #fdf7ea; border-color: #f1dfb4; }
+  .status.coverage { color: #d6453a; background: #fdf0ef; border-color: #f4cdc9; }
+  .open-btn { padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; font-weight: 500; color: var(--icon); text-decoration: none; white-space: nowrap; }
+  .open-btn:hover { background: #f6f7f9; }
+
+  /* Your Day */
+  .day { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .day-head { display: flex; align-items: center; gap: 12px; padding: 18px 22px; }
+  .day-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .day-head .date { color: var(--icon); }
+  .day-head .i { margin-left: auto; color: var(--muted); }
+  .day-body { margin: 0 8px 8px; border: 1px solid var(--ours-line); border-radius: 12px; background: var(--ours); padding: 18px 20px; }
+  .stat { display: flex; align-items: center; gap: 14px; }
+  .ring { width: 46px; height: 46px; border-radius: 50%; border: 3px solid var(--border); display: grid; place-items: center; font-size: 15px; font-weight: 600; color: var(--blue); }
+  .stat h3 { margin: 0; font-size: 17px; font-weight: 600; }
+  .stat p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  details.names { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  details.names summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+  details.names summary::-webkit-details-marker { display: none; }
+  details.names summary .i { width: 16px; height: 16px; transition: transform .15s; }
+  details.names[open] summary .i { transform: rotate(180deg); }
+  details.names summary .n { color: var(--text); }
+  details.names ul { list-style: none; margin: 10px 0 0; padding: 0; }
+  details.names li { display: flex; align-items: center; gap: 12px; padding: 10px 4px; font-size: 16px; }
+  details.names li + li { border-top: 1px solid var(--border); }
+  .circle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #c9cdd3; flex-shrink: 0; }
+  .circle.ok { background: var(--green); border-color: var(--green); }
+
+  @media (max-width: 1200px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 900px) {
+    .sidebar, .gsearch, .greet .sample { display: none; }
+    .layout { padding: 0 16px 16px; }
+    .main { padding: 16px; }
+    .banner { flex-wrap: wrap; }
+    .banner .btn-blue { margin-left: 0; }
+    .updates li { flex-wrap: wrap; }
+    .updates .time { margin-left: 20px; }
+    .todo { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .todo .when { border-right: 0; padding-right: 0; display: flex; gap: 8px; }
+    .todo .t { margin-top: 0; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="chev-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="chev-updown" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></symbol>
+    <symbol id="calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+    <symbol id="sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+    <symbol id="home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+    <symbol id="mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+    <symbol id="check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></symbol>
+    <symbol id="clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+    <symbol id="video" viewBox="0 0 24 24"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+    <symbol id="book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+    <symbol id="users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+    <symbol id="help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+    <symbol id="gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></symbol>
+    <symbol id="file-check" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></symbol>
+    <symbol id="edit" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"/></symbol>
+    <symbol id="expand" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+    <symbol id="mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></symbol>
+    <symbol id="wave" viewBox="0 0 24 24"><path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3"/></symbol>
+    <symbol id="arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></symbol>
+    <symbol id="logo" viewBox="0 0 24 24">
+      <g fill="#3b9be8" stroke="none">
+        <rect x="10" y="1.5" width="4" height="9" rx="2"/>
+        <rect x="10" y="13.5" width="4" height="9" rx="2"/>
+        <rect x="10" y="1.5" width="4" height="9" rx="2" transform="rotate(60 12 12)"/>
+        <rect x="10" y="13.5" width="4" height="9" rx="2" transform="rotate(60 12 12)"/>
+        <rect x="10" y="1.5" width="4" height="9" rx="2" transform="rotate(-60 12 12)"/>
+        <rect x="10" y="13.5" width="4" height="9" rx="2" transform="rotate(-60 12 12)"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="topbar">
+  <button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#menu"/></svg></button>
+  <div class="brand"><svg class="i" style="width:30px;height:30px"><use href="#logo"/></svg>Central EA<svg class="i chev" style="width:16px;height:16px"><use href="#chev-down"/></svg></div>
+  <div class="gsearch"><svg class="i" style="width:18px;height:18px"><use href="#search"/></svg>Search<kbd>Ctrl/Cmd+K</kbd></div>
+  <div class="spacer"></div>
+  <button class="icon-btn"><svg class="i"><use href="#help"/></svg>Help</button>
+  <button class="icon-btn bell" aria-label="Notifications"><svg class="i"><use href="#bell"/></svg><span class="badge">2</span></button>
+  <span style="font-size:22px">👋</span>
+  <div class="avatar">R</div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <button class="trial"><svg class="i" style="width:17px;height:17px"><use href="#gift"/></svg>Extend your trial by 30 days</button>
+    <nav class="nav">
+      <a href="#"><svg class="i"><use href="#sparkles"/></svg>Ask Central<svg class="i end" style="width:16px;height:16px"><use href="#chev-down"/></svg></a>
+      <a href="yourday.html" class="active"><svg class="i"><use href="#home"/></svg>Your Day</a>
+      <a href="#"><svg class="i"><use href="#calendar"/></svg>Calendar</a>
+      <a href="#"><svg class="i"><use href="#inbox"/></svg>Inbox<svg class="i end" style="width:16px;height:16px"><use href="#chev-down"/></svg></a>
+      <a href="#"><svg class="i"><use href="#check-circle"/></svg>Tasks<span class="count">0</span></a>
+      <a href="#"><svg class="i"><use href="#share"/></svg>Shared</a>
+      <div class="label">CUSTOMIZE YOUR EA</div>
+      <a href="#"><svg class="i"><use href="#mail"/></svg>Inbox Assistant<svg class="i end" style="width:16px;height:16px"><use href="#chev-down"/></svg></a>
+      <a href="#"><svg class="i"><use href="#clipboard"/></svg>Daily Briefing</a>
+      <div class="label">MEETINGS</div>
+      <a href="#"><svg class="i"><use href="#video"/></svg>Meeting Hub<svg class="i end" style="width:16px;height:16px"><use href="#chev-down"/></svg></a>
+      <a href="index.html"><svg class="i"><use href="#calendar"/></svg>Scheduling<svg class="i end" style="width:16px;height:16px"><use href="#chev-down"/></svg></a>
+      <hr>
+      <a href="#"><svg class="i"><use href="#book"/></svg>Knowledge</a>
+      <a href="#"><svg class="i"><use href="#users"/></svg>Team</a>
+      <a href="#"><svg class="i"><use href="#settings"/></svg>Settings</a>
+    </nav>
+    <div class="me"><span class="ws-icon">R</span>Riddhi Gangbhoj<svg class="i" style="width:16px;height:16px"><use href="#chev-updown"/></svg></div>
+  </aside>
+
+  <main class="main">
+    <div class="banner">
+      <div class="logo-g"><svg class="i" style="width:22px;height:22px"><use href="#logo"/></svg></div>
+      <div>
+        <h3>You're seeing sample data</h3>
+        <p>Connect your mailbox and calendar to unlock real-time updates, smart summaries, and AI actions.</p>
+      </div>
+      <button class="btn-blue">Connect</button>
+    </div>
+
+    <div class="greet">
+      <h1>Good Afternoon, Riddhi!</h1>
+      <span class="pill blue">✋ <b>18</b> Need Approval</span>
+      <span class="pill red">⏰ <b>6</b> Urgent</span>
+      <span class="pill green">✅ <b>20</b> Handled</span>
+      <span class="sample">Prototype · all patients are synthetic · today is Wed, 18 Mar</span>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="ask">
+          <svg class="i" style="color:var(--blue)"><use href="#sparkles"/></svg>
+          <span>Ask me anything or tell me what to prioritize…</span>
+          <div class="voice"><svg class="i" style="width:16px;height:16px"><use href="#wave"/></svg>Voice</div>
+          <svg class="i" style="color:var(--muted)"><use href="#mic"/></svg>
+          <div class="send"><svg class="i" style="width:18px;height:18px"><use href="#arrow-up"/></svg></div>
+        </div>
+
+        <!-- Changed: work updates are the receptionist's insurance actions today -->
+        <section class="panel ours">
+          <div class="panel-head">
+            <div class="doc"><svg class="i"><use href="#file-check"/></svg></div>
+            <div><h2>Your Afternoon Summary</h2><div class="sub">What you've done so far today</div></div>
+            <div class="tools"><svg class="i"><use href="#edit"/></svg><svg class="i" style="color:var(--icon)"><use href="#chev-down"/></svg></div>
+          </div>
+          <div class="section-label">WORK UPDATES</div>
+          <ul class="updates" id="updates"></ul>
+        </section>
+
+        <!-- Changed: to-dos are the Needs attention cases from Bookings -->
+        <section class="panel ours">
+          <h2 style="margin:0;font-size:18px;font-weight:600">Your To-Dos</h2>
+          <div class="tabs"><div class="tab">Needs attention <span class="n" id="todo-count"></span></div></div>
+          <div class="todos" id="todos"></div>
+        </section>
+      </div>
+
+      <aside class="day">
+        <div class="day-head">
+          <h2>Your Day</h2><span class="date">Wed, 18 Mar</span>
+          <svg class="i" style="width:18px;height:18px"><use href="#expand"/></svg>
+        </div>
+        <!-- Changed: today's patients and who is still not verified -->
+        <div class="day-body">
+          <div class="stat">
+            <div class="ring" id="ring"></div>
+            <div><h3 id="day-title"></h3><p id="day-sub"></p></div>
+          </div>
+          <details class="names" open>
+            <summary>Yet to be verified <span class="n" id="unv-count"></span><svg class="i"><use href="#chev-down"/></svg></summary>
+            <ul id="unv"></ul>
+          </details>
+          <details class="names">
+            <summary>Verified <span class="n" id="ver-count"></span><svg class="i"><use href="#chev-down"/></svg></summary>
+            <ul id="ver"></ul>
+          </details>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Prototype "today": Wed Mar 18, 2026, afternoon. All patients and data are synthetic.
+  // Actions the receptionist took today. dot colour: green = done, purple = waiting on patient, grey = info.
+  const UPDATES = [
+    { dot: "var(--green)",  text: "Called Aetna and updated Ethan Brooks's insurance manually", tag: "VERIFIED", time: "2:40 PM" },
+    { dot: "var(--purple)", text: "Asked Hannah Lee for her member ID and insurance card photo", tag: "AWAITING REPLY", time: "1:15 PM" },
+    { dot: "var(--green)",  text: "Checked new insurance card for Liam Chen at the desk", tag: "VERIFIED", time: "11:50 AM" },
+    { dot: "var(--grey)",   text: "Marked Sofia Reyes as self-pay", tag: "SELF-PAY", time: "10:30 AM" },
+    { dot: "var(--green)",  text: "Collected copays at check-in for 4 patients", tag: "DONE", time: "9:00 AM – 12 PM" },
+  ];
+
+  // Same cases as "Needs attention" on the Bookings page, earliest visit first.
+  const TODOS = [
+    { patient: "Robert Diaz",   date: "Mar 20", time: "10:00 AM", status: "coverage", label: "Insurance not verified", why: "Coverage ended Feb 28. Message to patient is ready to send." },
+    { patient: "Daniel Okafor", date: "Mar 21", time: "10:00 AM", status: "missing",  label: "Details missing",        why: "Insurance company and member ID not given. Request details from patient." },
+    { patient: "Peter Walsh",   date: "Mar 22", time: "3:30 PM",  status: "coverage", label: "Insurance not verified", why: "Clinic is out-of-network. Message to patient is ready to send." },
+    { patient: "Nina Patel",    date: "Mar 26", time: "11:30 AM", status: "coverage", label: "Insurance not verified", why: "Coverage starts Apr 1, after the visit. Message to patient is ready to send." },
+  ];
+
+  // Patients coming in today.
+  const TODAY = [
+    { name: "Grace Kim", ok: true }, { name: "Ethan Brooks", ok: true }, { name: "Hannah Lee", ok: false },
+    { name: "Liam Chen", ok: true }, { name: "Sofia Reyes", ok: true }, { name: "Marcus Bell", ok: false },
+    { name: "Ava Thompson", ok: true }, { name: "Noah Patel", ok: true }, { name: "Chloe Martin", ok: true },
+  ];
+
+  document.getElementById("updates").innerHTML = UPDATES.map(u =>
+    `<li><span class="dot" style="--c:${u.dot}"></span><span>${u.text} <span class="tag">${u.tag}</span></span><span class="time">${u.time}</span></li>`).join("");
+
+  document.getElementById("todo-count").textContent = TODOS.length;
+  document.getElementById("todos").innerHTML = TODOS.map(t => `
+    <div class="todo">
+      <div class="when"><div class="d">${t.date}</div><div class="t">${t.time}</div></div>
+      <div><div class="name">${t.patient}</div><div class="why">${t.why}</div><span class="status ${t.status}">${t.label}</span></div>
+      <a class="open-btn" href="index.html">Open in Bookings</a>
+    </div>`).join("");
+
+  const unv = TODAY.filter(p => !p.ok), ver = TODAY.filter(p => p.ok);
+  document.getElementById("ring").textContent = unv.length;
+  document.getElementById("day-title").textContent = `${unv.length} of ${TODAY.length} patients yet to be verified`;
+  document.getElementById("day-sub").textContent = `${TODAY.length} patients coming in today`;
+  document.getElementById("unv-count").textContent = unv.length;
+  document.getElementById("ver-count").textContent = ver.length;
+  const li = p => `<li><span class="circle${p.ok ? " ok" : ""}"></span>${p.name}</li>`;
+  document.getElementById("unv").innerHTML = unv.map(li).join("");
+  document.getElementById("ver").innerHTML = ver.map(li).join("");
+</script>
+</body>
+</html>
