@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookings · Central EA (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --border: #e6e8ec;
+    --text: #1f2328;
+    --muted: #6b7280;
+    --icon: #4b5563;
+    --blue: #3b9be8;
+    --blue-soft: #eaf4fd;
+    --red: #c2352b;
+
+    /* Verification groups */
+    --g-coverage: #d6453a;   --g-coverage-soft: #fdf0ef;  --g-coverage-line: #f4cdc9;
+    --g-attention: #d9622b;  --g-attention-soft: #fdf2ec; --g-attention-line: #f5d2c0;
+    --g-working: #2f7fd6;    --g-working-soft: #edf5fe;   --g-working-line: #c8def8;
+    --g-verified: #2f9e6b;   --g-verified-soft: #eefaf3;  --g-verified-line: #c9ecd9;
+    --g-missing: #b7791f;    --g-missing-soft: #fdf7ea;   --g-missing-line: #f1dfb4;
+    --g-waiting: #7a5ccf;    --g-waiting-soft: #f4f1fd;   --g-waiting-line: #dcd3f6;
+    --g-none: #7c838d;       --g-none-soft: #f4f5f7;      --g-none-line: #e1e4e8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+  }
+  svg.i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+  /* Top bar */
+  .topbar { height: 64px; display: flex; align-items: center; gap: 16px; padding: 0 24px; background: var(--bg); }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 19px; }
+  .brand .chev { color: var(--muted); }
+  .meeting-pill { display: flex; align-items: center; gap: 8px; margin-left: 12px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 14px; color: var(--icon); }
+  .meeting-pill .time { color: #a0a6ae; }
+  .topbar .spacer { flex: 1; }
+  .icon-btn { background: none; border: 0; padding: 4px; color: var(--icon); cursor: pointer; display: flex; align-items: center; gap: 6px; font: inherit; font-size: 16px; }
+  .bell { position: relative; }
+  .bell .badge { position: absolute; top: -4px; right: -6px; background: #e5484d; color: #fff; font-size: 10px; font-weight: 600; border-radius: 999px; padding: 1px 5px; border: 2px solid var(--bg); }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: #7b2cbf; color: #fff; display: grid; place-items: center; font-weight: 600; }
+
+  /* Layout */
+  .layout { display: flex; gap: 20px; padding: 0 24px 24px; }
+  .sidebar { width: 270px; flex-shrink: 0; }
+  .trial { width: 100%; display: flex; align-items: center; gap: 10px; justify-content: center; background: var(--blue); color: #fff; border: 0; border-radius: 8px; padding: 12px; font: inherit; font-weight: 600; font-size: 14px; margin: 8px 0 20px; cursor: pointer; }
+  .nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 8px; color: var(--icon); text-decoration: none; font-size: 15px; }
+  .nav a:hover { background: #eceef1; }
+  .nav a .end { margin-left: auto; color: var(--muted); font-size: 14px; }
+  .nav a.open { color: var(--blue); }
+  .nav a.active { background: var(--blue-soft); color: var(--blue); border: 1px solid #d3e8fa; }
+  .nav .sub { padding-left: 22px; }
+  .nav .label { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); padding: 16px 12px 6px; }
+  .workspace { display: flex; align-items: center; gap: 10px; margin-top: 24px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 13px; font-weight: 600; letter-spacing: .04em; }
+  .workspace .ws-icon { width: 22px; height: 22px; border-radius: 6px; background: #8b5cf6; color: #fff; display: grid; place-items: center; font-size: 12px; }
+  .workspace .i { margin-left: auto; color: var(--muted); }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; background: var(--surface); border-radius: 16px; border: 1px solid var(--border); padding: 44px 48px; min-height: calc(100vh - 88px); }
+  h1 { margin: 0; font-size: 32px; font-weight: 600; }
+  .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 17px; }
+  .tabs { display: flex; gap: 40px; border-bottom: 1px solid var(--border); margin-top: 36px; }
+  .tab { background: none; border: 0; font: inherit; font-size: 18px; padding: 0 0 12px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.active { color: var(--blue); border-color: var(--blue); }
+
+  .toolbar { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+  .search { flex: 1; min-width: 260px; max-width: 480px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--muted); }
+  .search input { border: 0; outline: 0; font: inherit; flex: 1; color: var(--text); background: transparent; }
+
+  /* Group chips */
+  .chips { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font: inherit; font-size: 14px; font-weight: 500; color: var(--icon); cursor: pointer; }
+  .chip .count { font-weight: 700; }
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--muted)); }
+  .chip.on { background: var(--soft, #f1f2f4); border-color: var(--c, var(--text)); color: var(--c, var(--text)); }
+  .chip[data-g="all"].on { --c: var(--text); --soft: #f1f2f4; }
+
+  .group-head { margin: 34px 0 -6px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--c); }
+  .group-head .rule { flex: 1; height: 1px; background: var(--line); }
+
+  .list { margin-top: 8px; display: flex; flex-direction: column; gap: 18px; }
+  .list.all { margin-top: 28px; }
+  .card { position: relative; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 24px; border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px 14px; background: var(--tint); }
+  .when-block { padding-right: 20px; border-right: 1px solid var(--border); }
+  .wb-date { font-size: 18px; font-weight: 600; }
+  .wb-time { margin-top: 2px; font-size: 14px; color: var(--icon); }
+  .wb-visit { margin-top: 8px; font-size: 13px; color: var(--muted); line-height: 1.35; }
+  .card-row { display: flex; align-items: flex-start; gap: 12px 20px; }
+  .card-title { font-size: 18px; font-weight: 600; }
+  .actions { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .badge-g { padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid var(--line); color: var(--c); background: var(--soft); white-space: nowrap; }
+  .btn { padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font: inherit; font-size: 14px; font-weight: 500; color: var(--icon); cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: #f6f7f9; }
+  .btn.danger { color: var(--red); font-weight: 600; }
+  .btn.primary { background: var(--c); border-color: var(--c); color: #fff; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(.95); }
+
+  .labels { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .lbl { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); background: #fff; color: var(--icon); }
+  .lbl.active { color: var(--g-verified); background: var(--g-verified-soft); border-color: var(--g-verified-line); }
+  .lbl.inactive { color: var(--g-coverage); background: var(--g-coverage-soft); border-color: var(--g-coverage-line); }
+  .lbl.unverified { color: var(--g-attention); background: var(--g-attention-soft); border-color: var(--g-attention-line); }
+  .ins .insurer { color: var(--muted); font-weight: 500; }
+  .note { margin-top: 10px; padding: 12px 14px; border-radius: 8px; background: #ffffff; border: 1px solid var(--border); font-size: 14px; line-height: 1.5; color: #374151; }
+  .msg-box { position: relative; margin-top: 8px; }
+  .msg { padding: 8px 40px 8px 12px; border-left: 2px solid var(--border); color: var(--muted); font-style: italic; }
+  .menu-wrap { position: absolute; top: 2px; right: 0; }
+  .kebab { background: none; border: 0; padding: 4px 6px; border-radius: 6px; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+  .kebab:hover { background: #eef0f3; color: var(--text); }
+  .menu { position: absolute; right: 0; top: 30px; z-index: 5; min-width: 160px; background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 4px; }
+  .menu button { width: 100%; text-align: left; background: none; border: 0; padding: 8px 10px; border-radius: 6px; font: inherit; font-size: 14px; color: var(--text); cursor: pointer; }
+  .menu button:hover { background: #f4f5f7; }
+  .msg-edit { width: 100%; font: inherit; font-size: 14px; line-height: 1.5; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; resize: vertical; }
+  .msg-edit:focus { outline: 2px solid var(--blue-soft); border-color: var(--blue); }
+  .compose { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .compose-label { font-size: 13px; font-weight: 600; color: var(--text); margin: 6px 0; }
+  .asks { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 8px; }
+  .ask { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+  .ask input { accent-color: var(--blue); }
+  .card-menu { position: relative; top: 0; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-bottom: 10px; }
+  .manual-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; color: var(--icon); }
+  .manual-form input, .manual-form select { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); }
+  .manual-form .full { margin-bottom: 4px; }
+  .sent { margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--g-verified); }
+  .note-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .details-toggle { margin-top: 14px; background: none; border: 0; font: inherit; font-size: 15px; color: var(--icon); display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 0; }
+  .details-toggle svg.i { width: 16px; height: 16px; transition: transform .15s; }
+  .details-toggle[aria-expanded="true"] svg.i { transform: rotate(180deg); }
+  .details { margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .details h4 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .steps li { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start; font-size: 14px; }
+  .steps .s { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; }
+  .s.done { background: var(--g-verified); }
+  .s.fail { background: var(--g-coverage); }
+  .s.wait { background: var(--g-working); }
+  .s.person { background: var(--g-attention); }
+  .s.todo { background: #c3c8cf; }
+  .steps .when { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .steps .retry { margin-left: 8px; padding: 2px 8px; font-size: 12px; }
+  .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f2328; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: calc(100% - 32px); }
+  .toast.show { opacity: 1; }
+  .fab { position: fixed; right: 36px; bottom: 36px; width: 48px; height: 48px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+
+  /* Group colour hooks */
+  [data-group="coverage"]  { --c: var(--g-coverage);  --soft: var(--g-coverage-soft);  --line: var(--g-coverage-line);  --tint: #fffafa; }
+  [data-group="attention"] { --c: var(--g-attention); --soft: var(--g-attention-soft); --line: var(--g-attention-line); --tint: #fffcf6; }
+  [data-group="verified"]  { --c: var(--g-verified);  --soft: var(--g-verified-soft);  --line: var(--g-verified-line);  --tint: #f9fdfb; }
+  [data-group="missing"]   { --c: var(--g-missing);   --soft: var(--g-missing-soft);   --line: var(--g-missing-line);   --tint: #fffdf8; }
+  [data-group="waiting"]   { --c: var(--g-waiting);   --soft: var(--g-waiting-soft);   --line: var(--g-waiting-line);   --tint: #fcfbff; }
+  [data-group="none"]      { --c: var(--g-none);      --soft: var(--g-none-soft);      --line: var(--g-none-line);      --tint: #fbfbfc; }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .layout { padding: 0 16px 16px; }
+    .main { padding: 24px 16px; }
+    .meeting-pill { display: none; }
+    .card { padding: 18px 16px 14px; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .when-block { border-right: 0; padding-right: 0; }
+    .card-row { flex-wrap: wrap; }
+    .actions { margin-left: 0; width: 100%; justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="chev-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="chev-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+    <symbol id="calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+    <symbol id="calendar-check" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18m-12 6 2 2 4-4"/></symbol>
+    <symbol id="sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+    <symbol id="home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+    <symbol id="check-square" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="video" viewBox="0 0 24 24"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+    <symbol id="brain" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/></symbol>
+    <symbol id="users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+    <symbol id="help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+    <symbol id="gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="logo" viewBox="0 0 24 24">
+      <g fill="#3b9be8" stroke="none">
+        <rect x="10" y="1.5" width="4" height="9" rx="2"/>
+        <rect x="10" y="13.5" width="4" height="9" rx="2"/>
+        <rect x="10" y="1.5" width="4" height="9" rx="2" transform="rotate(60 12 12)"/>
+        <rect x="10" y="13.5" width="4" height="9" rx="2" transform="rotate(60 12 12)"/>
+        <rect x="10" y="1.5" width="4" height="9" rx="2" transform="rotate(-60 12 12)"/>
+        <rect x="10" y="13.5" width="4" height="9" rx="2" transform="rotate(-60 12 12)"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="topbar">
+  <button class="icon-btn" aria-label="Menu"><svg class="i"><use href="#menu"/></svg></button>
+  <div class="brand"><svg class="i" style="width:30px;height:30px"><use href="#logo"/></svg>Central EA<svg class="i chev" style="width:16px;height:16px"><use href="#chev-down"/></svg></div>
+  <div class="meeting-pill"><svg class="i" style="width:17px;height:17px"><use href="#calendar"/></svg>Marketing Sync w/ Ryan <span class="time">4:00 PM</span></div>
+  <div class="spacer"></div>
+  <button class="icon-btn"><svg class="i"><use href="#help"/></svg>Feedback</button>
+  <button class="icon-btn bell" aria-label="Notifications"><svg class="i"><use href="#bell"/></svg><span class="badge">12</span></button>
+  <span style="font-size:22px">👋</span>
+  <div class="avatar">M</div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <button class="trial"><svg class="i" style="width:17px;height:17px"><use href="#gift"/></svg>Extend your trial by 7 days</button>
+    <nav class="nav">
+      <a href="#"><svg class="i"><use href="#sparkles"/></svg>Ask Central<svg class="i end" style="width:16px;height:16px"><use href="#chev-down"/></svg></a>
+      <a href="#"><svg class="i"><use href="#home"/></svg>Your Day</a>
+      <a href="#"><svg class="i"><use href="#calendar"/></svg>Calendar</a>
+      <a href="#"><svg class="i"><use href="#mail"/></svg>Mail<svg class="i end" style="width:16px;height:16px"><use href="#chev-down"/></svg></a>
+      <a href="#"><svg class="i"><use href="#check-square"/></svg>Tasks<span class="end">0</span></a>
+      <div class="label">MEETINGS</div>
+      <a href="#"><svg class="i"><use href="#video"/></svg>Meetings</a>
+      <a href="#" class="open"><svg class="i"><use href="#calendar"/></svg>Scheduler<svg class="i end" style="width:16px;height:16px;color:var(--blue)"><use href="#chev-up"/></svg></a>
+      <div class="sub">
+        <a href="#"><svg class="i"><use href="#calendar"/></svg>Dashboard</a>
+        <a href="#" class="active"><svg class="i"><use href="#calendar-check"/></svg>Bookings</a>
+      </div>
+      <a href="#"><svg class="i"><use href="#brain"/></svg>Knowledge</a>
+      <a href="#"><svg class="i"><use href="#users"/></svg>Team</a>
+    </nav>
+    <div class="workspace"><span class="ws-icon">C</span>CENTRAL<svg class="i" style="width:16px;height:16px"><use href="#chev-down"/></svg></div>
+  </aside>
+
+  <main class="main">
+    <h1>Bookings</h1>
+    <p class="subtitle">Manage your upcoming and past bookings · insurance checked automatically</p>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="upcoming" role="tab">Upcoming</button>
+      <button class="tab" data-tab="past" role="tab">Past</button>
+    </div>
+
+    <div class="toolbar">
+      <label class="search">
+        <svg class="i" style="width:18px;height:18px"><use href="#search"/></svg>
+        <input id="q" type="search" placeholder="Search patients, insurers, case codes…">
+      </label>
+    </div>
+    <div class="chips" id="chips"></div>
+
+    <div id="list"></div>
+  </main>
+</div>
+
+<div class="fab"><svg class="i" style="width:26px;height:26px"><use href="#logo"/></svg></div>
+<div class="toast" id="toast"></div>
+
+<script>
+  // Prototype "today": Wed Mar 18, 2026, 9:00 AM. All patients and data are synthetic.
+  // Groups follow the workflow: details in → patient reply → Central AI check → result.
+  // Card status (badge colour on each card).
+  const GROUPS = {
+    missing:   { label: "Details missing" },
+    coverage:  { label: "Insurance not verified" },
+    waiting:   { label: "Waiting for patient response" },
+    verified:  { label: "Verified" },
+    none:      { label: "Self-pay" },
+  };
+  // Sections on the page; "Needs attention" holds both statuses staff must act on. Cards inside are earliest visit first.
+  const SECTIONS = [
+    { key: "attention", label: "Needs attention", groups: ["missing", "coverage"] },
+    { key: "waiting",   label: "Waiting for patient response", groups: ["waiting"] },
+    { key: "verified",  label: "Verified", groups: ["verified"] },
+    { key: "none",      label: "Self-pay", groups: ["none"] },
+  ];
+  const sectionOf = c => SECTIONS.find(sec => sec.groups.includes(c.group)).key;
+
+  // Details staff can ask the patient for; message is generated from the ticked items and stays editable.
+  const ASKABLE = ["Insurance company name", "Member ID", "Photo of insurance card (front and back)", "Policyholder's name and date of birth", "Group number"];
+  const requestText = (c, items) => items.length
+    ? `Hi ${c.patient.split(" ")[0]}, this is the clinic. To confirm your insurance before your visit on ${c.date}, please reply with your ${items.map(i => i.charAt(0).toLowerCase() + i.slice(1)).join(", ")}. You can also use this secure link: clinic.link/ins`
+    : "";
+
+  // Coverage label per case: green = active, red = inactive, yellow = not verified yet. Self-pay has none.
+  const COVERAGE = { P1: "unverified",
+                     A1: "active", A4: "active", A6: "active", I1: "inactive", I2: "inactive" };
+  const COVERAGE_LABEL = { active: "Active", inactive: "Inactive", unverified: "Yet to be verified" };
+  const covOf = c => c.cov !== undefined ? c.cov : COVERAGE[c.code];
+
+  // Manual override (backup when Central AI can't get an answer, e.g. staff called the insurer).
+  const MANUAL_STATUS = {
+    active:     { label: "Verified – coverage active", group: "verified", cov: "active" },
+    inactive:   { label: "Not verified – coverage inactive", group: "coverage", cov: "inactive" },
+    unverified: { label: "Not verified yet", group: "coverage", cov: "unverified" },
+    selfpay:    { label: "Self-pay", group: "none", cov: null },
+  };
+
+  // steps: [state, text, when] — state: done | fail | wait | person | todo
+  const CASES = [
+    { code: "P1", group: "missing", patient: "Daniel Okafor", visit: "Follow-up visit", date: "Mar 21", sort: 321.10, time: "10:00 AM",
+      insurer: "Not given", line: "Insurer and member ID missing",
+      note: "Insurance company and member ID weren't given on the call.", missing: ["Insurance company name", "Member ID", "Photo of insurance card (front and back)"],
+      steps: [["done","Booked on call","Mar 17, 4:10 PM"],["fail","Insurance company and member ID not given","Mar 17, 4:10 PM"],["person","Request details from patient",""],["todo","Central AI checks insurance when details arrive",""]] },
+    { code: "P3", group: "none", patient: "Tom Becker", visit: "New patient visit", date: "Mar 24", sort: 324.14, time: "2:00 PM",
+      insurer: "Self-pay", line: "Self-pay: no insurance check",
+      note: "Self-pay. No check needed.",
+      steps: [["done","Patient chose self-pay on call","Mar 16, 3:05 PM"],["done","Self-pay price texted","Mar 16, 3:06 PM"]] },
+    { code: "A1", group: "verified", patient: "Maria Lopez", visit: "New patient – knee consult", date: "Mar 19", sort: 319.09, time: "9:00 AM",
+      insurer: "BCBS of Texas", line: "Active · $40 copay · $310 deductible left · recorded in EHR",
+      note: "Coverage confirmed and saved to EHR.",
+      steps: [["done","Details captured on call","Mar 15, 10:02 AM"],["done","Insurer matched: “Blue Cross” → BCBS of Texas","Mar 15, 10:02 AM"],["done","Insurer reply: Active · ref TRN-88231","Mar 15, 10:03 AM"],["done","Written to EHR · read back ✓","Mar 15, 10:04 AM"]] },
+    { code: "A4", group: "coverage", patient: "Peter Walsh", visit: "New patient visit", date: "Mar 22", sort: 322.15, time: "3:30 PM",
+      insurer: "Humana", line: "Active · clinic is out-of-network",
+      note: "Clinic is out-of-network. Send this message to the patient:", msg: "Our clinic is out-of-network for your plan, so your estimated cost is $180. Would you like to keep this visit?",
+      actions: ["Send this message"],
+      steps: [["done","Insurer reply: Active · out-of-network","Mar 17, 10:05 AM"],["done","Draft message to patient prepared","Mar 17, 10:05 AM"],["person","Approve message · manager",""]] },
+    { code: "A6", group: "waiting", patient: "Olivia Grant", visit: "Follow-up visit", date: "Mar 24", sort: 324.10, time: "10:00 AM",
+      insurer: "Aetna + Medicare", line: "Active · 2 plans found: which is primary?",
+      note: "Two plans found. Patient asked which is primary.",
+      steps: [["done","Insurer reply: Active · other coverage reported","Mar 17, 2:00 PM"],["done","Patient asked by text which plan is primary","Mar 17, 2:01 PM"],["wait","Waiting for patient reply",""]] },
+    { code: "I1", group: "coverage", patient: "Robert Diaz", visit: "Follow-up visit", date: "Mar 20", sort: 320.10, time: "10:00 AM",
+      insurer: "Cigna", line: "Coverage ended Feb 28, 2026",
+      note: "Coverage has ended. Send this message to the patient:", msg: "We couldn't confirm your insurance coverage. Do you have new insurance we can check?",
+      actions: ["Send this message"],
+      steps: [["done","Insurer reply: Inactive · terminated Feb 28 · ref TRN-90102","Mar 17, 4:45 PM"],["done","Draft message to patient prepared","Mar 17, 4:45 PM"],["person","Approve message · manager",""],["todo","Re-check if patient sends new insurance",""]] },
+    { code: "I2", group: "coverage", patient: "Nina Patel", visit: "New patient visit", date: "Mar 26", sort: 326.11, time: "11:30 AM",
+      insurer: "Oscar Health", line: "Coverage starts Apr 1 · visit is Mar 26",
+      note: "Coverage hasn't started yet. Send this message to the patient:", msg: "Your plan starts Apr 1, after your visit. Would you like to reschedule or keep it as self-pay?",
+      actions: ["Send this message"],
+      steps: [["done","Insurer reply: Not yet active · starts Apr 1","Mar 18, 8:10 AM"],["person","Approve message · manager",""]] },
+  ];
+
+  const PAST = [
+    { code: "A1", group: "verified", patient: "Laura Kim", visit: "Follow-up visit", date: "Mar 12", sort: 312.10, time: "10:00 AM",
+      insurer: "Aetna", line: "Active · $25 copay · recorded in EHR", note: "Verified before the visit (ref TRN-87011). Visit completed.",
+      steps: [["done","Insurer reply: Active","Mar 10, 9:00 AM"],["done","Written to EHR · read back ✓","Mar 10, 9:01 AM"]] },
+    { code: "P3", group: "none", patient: "Omar Haddad", visit: "New patient visit", date: "Mar 11", sort: 311.14, time: "2:00 PM",
+      insurer: "Self-pay", line: "Self-pay: no insurance check", note: "Self-pay visit. Completed.",
+      steps: [["done","Patient chose self-pay","Mar 9, 1:00 PM"]] },
+  ];
+
+  let tab = "upcoming";
+  let filter = "all";
+  const open = new Set();
+  const editing = new Set();
+  const composing = new Set();
+  const manual = new Set();
+  let menuFor = null;
+  const listEl = document.getElementById("list");
+  const chipsEl = document.getElementById("chips");
+  const q = document.getElementById("q");
+
+  const icon = id => `<svg class="i"><use href="#${id}"/></svg>`;
+  const STEP_MARK = { done: "✓", fail: "✕", wait: "…", person: "!", todo: "" };
+  const data = () => tab === "upcoming" ? CASES : PAST;
+
+  function renderChips() {
+    const rows = data();
+    const count = k => rows.filter(c => sectionOf(c) === k).length;
+    chipsEl.innerHTML =
+      `<button class="chip ${filter === "all" ? "on" : ""}" data-g="all">All <span class="count">${rows.length}</span></button>` +
+      SECTIONS.map(sec => `
+        <button class="chip ${filter === sec.key ? "on" : ""}" data-g="${sec.key}" data-group="${sec.key}">
+          <span class="dot"></span>${sec.label} <span class="count">${count(sec.key)}</span>
+        </button>`).join("");
+  }
+
+  function card(c) {
+    const id = c.code + c.patient;
+    const isOpen = open.has(id);
+    return `
+      <article class="card" data-group="${c.group}">
+        <div class="when-block">
+          <div class="wb-date">${c.date}</div>
+          <div class="wb-time">${c.time}</div>
+          <div class="wb-visit">${c.visit}</div>
+        </div>
+        <div class="body">
+        <div class="card-row">
+          <div>
+            <div class="card-title">${c.patient}</div>
+            <div class="labels">
+              <span class="lbl">${c.insurer === "Self-pay" ? "Self-pay" : `Insurer: ${c.insurer}`}</span>
+              ${covOf(c) ? `<span class="lbl ${covOf(c)}">${COVERAGE_LABEL[covOf(c)]}</span>` : ""}
+              ${c.manual ? `<span class="lbl">Updated manually</span>` : ""}
+            </div>
+          </div>
+          <div class="actions">
+            <span class="badge-g">${GROUPS[c.group].label}</span>
+            ${tab === "upcoming" && c.group !== "missing" && c.group !== "waiting" ? `<button class="btn" data-act="Reschedule">Reschedule</button><button class="btn danger" data-act="Cancel">Cancel</button>` : ""}
+            ${tab === "upcoming" ? `
+              <div class="menu-wrap card-menu">
+                <button class="kebab" data-menu="card:${id}" aria-label="More options">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                </button>
+                ${menuFor === "card:" + id ? `<div class="menu"><button data-manual="${id}">Update insurance manually</button></div>` : ""}
+              </div>` : ""}
+          </div>
+        </div>
+        ${manual.has(id) ? manualForm(c, id) : `<div class="note">${c.note}
+          ${c.msg ? msgBlock(c, id) : ""}
+          ${c.group === "missing" && tab === "upcoming" ? requestBlock(c, id) : ""}
+          ${c.actions && tab === "upcoming" && !c.sent && !editing.has(id) ? `<div class="note-actions">${c.actions.map((a, i) =>
+            `<button class="btn ${i === c.actions.length - 1 ? "primary" : ""}" data-act="${a}" data-id="${id}">${a}</button>`).join("")}</div>` : ""}
+        </div>`}
+        <button class="details-toggle" data-toggle="${id}" aria-expanded="${isOpen}">${isOpen ? "Hide" : "View"} details ${icon("chev-down")}</button>
+        ${isOpen ? `
+          <div class="details">
+            <h4>Step log</h4>
+            <ul class="steps">
+              ${c.steps.map(([s, text, when]) => `
+                <li><span class="s ${s}">${STEP_MARK[s]}</span>
+                  <span>${text}</span>
+                  <span class="when">${when || ""}</span></li>`).join("")}
+            </ul>
+          </div>` : ""}
+        </div>
+      </article>`;
+  }
+
+  const esc = t => t.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+
+  // Message to the patient, with a ⋯ menu to edit it before sending.
+  function msgBlock(c, id) {
+    if (c.sent) return `<div class="msg-box"><div class="msg">“${esc(c.msg)}”</div><div class="sent">Sent to ${esc(c.patient)} · just now</div></div>`;
+    if (editing.has(id)) return `
+      <div class="msg-box">
+        <textarea class="msg-edit" data-text="${id}" rows="3">${esc(c.msg)}</textarea>
+        <div class="note-actions">
+          <button class="btn" data-cancel-edit="${id}">Cancel</button>
+          <button class="btn primary" data-save="${id}">Save message</button>
+        </div>
+      </div>`;
+    return `
+      <div class="msg-box">
+        <div class="msg">“${esc(c.msg)}”</div>
+        <div class="menu-wrap">
+          <button class="kebab" data-menu="${id}" aria-label="Message options">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+          </button>
+          ${menuFor === id ? `<div class="menu"><button data-edit="${id}">Edit message</button></div>` : ""}
+        </div>
+      </div>`;
+  }
+
+  // "Details missing" → staff tick what to ask for, edit the text, send → card moves to "Waiting for patient response".
+  function requestBlock(c, id) {
+    if (!composing.has(id)) return `<div class="note-actions"><button class="btn primary" data-compose="${id}">Request details from patient</button></div>`;
+    const picked = c.picked || c.missing || [];
+    return `
+      <div class="compose">
+        <div class="compose-label">What do you need from the patient?</div>
+        <div class="asks">${ASKABLE.map(item => `
+          <label class="ask"><input type="checkbox" data-ask="${id}" value="${item}" ${picked.includes(item) ? "checked" : ""}> ${item}</label>`).join("")}
+        </div>
+        <div class="compose-label">Message</div>
+        <textarea class="msg-edit" data-text="${id}" rows="3">${esc(c.draft ?? requestText(c, picked))}</textarea>
+        <div class="note-actions">
+          <button class="btn" data-cancel-compose="${id}">Cancel</button>
+          <button class="btn primary" data-send-request="${id}">Send to patient</button>
+        </div>
+      </div>`;
+  }
+
+  function manualForm(c, id) {
+    const current = c.group === "verified" ? "active" : c.group === "none" ? "selfpay" : covOf(c) === "inactive" ? "inactive" : "unverified";
+    return `
+      <div class="note manual-form">
+        <div class="compose-label">Update insurance manually</div>
+        <div class="form-grid">
+          <label>Insurer name<input type="text" data-m-insurer="${id}" value="${esc(["Not given", "Self-pay"].includes(c.insurer) ? "" : c.insurer)}" placeholder="e.g. Aetna"></label>
+          <label>Status<select data-m-status="${id}">${Object.entries(MANUAL_STATUS).map(([k, v]) =>
+            `<option value="${k}" ${k === current ? "selected" : ""}>${v.label}</option>`).join("")}</select></label>
+        </div>
+        <label class="full">Note<textarea class="msg-edit" data-m-note="${id}" rows="2" placeholder="e.g. Called Cigna, spoke to rep Dana, ref #48213"></textarea></label>
+        <div class="note-actions">
+          <button class="btn" data-cancel-manual="${id}">Cancel</button>
+          <button class="btn primary" data-save-manual="${id}">Save</button>
+        </div>
+      </div>`;
+  }
+
+  function render() {
+    renderChips();
+    const term = q.value.trim().toLowerCase();
+    const rows = data()
+      .filter(c => filter === "all" || sectionOf(c) === filter)
+      .filter(c => !term || [c.code, c.patient, c.insurer, c.line, c.visit].join(" ").toLowerCase().includes(term));
+    if (!rows.length) { listEl.innerHTML = `<div class="empty">No bookings found</div>`; return; }
+    // "All" is one list by visit date; a chip shows just that section.
+    if (filter === "all") {
+      listEl.innerHTML = `<div class="list all">${[...rows].sort((a, b) => a.sort - b.sort).map(card).join("")}</div>`;
+      return;
+    }
+    listEl.innerHTML = SECTIONS.map(sec => {
+      const inGroup = rows.filter(c => sectionOf(c) === sec.key).sort((a, b) => a.sort - b.sort);
+      if (!inGroup.length) return "";
+      return `
+        <div class="group-head" data-group="${sec.key}">${sec.label} · ${inGroup.length}
+          <span class="rule"></span></div>
+        <div class="list">${inGroup.map(card).join("")}</div>`;
+    }).join("");
+  }
+
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b === btn));
+    tab = btn.dataset.tab; filter = "all"; render();
+  }));
+  chipsEl.addEventListener("click", e => {
+    const c = e.target.closest(".chip");
+    if (c) { filter = c.dataset.g; render(); }
+  });
+  q.addEventListener("input", render);
+  // Ticking a detail rebuilds the message; typing in it keeps your own wording.
+  listEl.addEventListener("change", e => {
+    const box = e.target.closest("[data-ask]");
+    if (!box) return;
+    const id = box.dataset.ask, c = CASES.find(x => x.code + x.patient === id);
+    c.picked = [...listEl.querySelectorAll(`[data-ask="${CSS.escape(id)}"]:checked`)].map(x => x.value);
+    delete c.draft; render();
+  });
+  listEl.addEventListener("input", e => {
+    const t = e.target.closest("[data-text]");
+    if (!t) return;
+    const c = CASES.find(x => x.code + x.patient === t.dataset.text);
+    if (composing.has(t.dataset.text)) c.draft = t.value;
+  });
+  document.addEventListener("click", e => {
+    if (menuFor && !e.target.closest(".menu-wrap")) { menuFor = null; render(); }
+  });
+  listEl.addEventListener("click", e => {
+    const t = e.target.closest("[data-toggle]");
+    if (t) { const id = t.dataset.toggle; open.has(id) ? open.delete(id) : open.add(id); render(); return; }
+    const find = id => CASES.find(x => x.code + x.patient === id);
+    const m = e.target.closest("[data-menu]");
+    if (m) { menuFor = menuFor === m.dataset.menu ? null : m.dataset.menu; render(); return; }
+    const ed = e.target.closest("[data-edit]");
+    if (ed) { menuFor = null; editing.add(ed.dataset.edit); render(); listEl.querySelector(`[data-text="${CSS.escape(ed.dataset.edit)}"]`)?.focus(); return; }
+    const sv = e.target.closest("[data-save]");
+    if (sv) {
+      const id = sv.dataset.save, text = listEl.querySelector(`[data-text="${CSS.escape(id)}"]`).value.trim();
+      if (text) find(id).msg = text;
+      editing.delete(id); render(); toast("Message updated"); return;
+    }
+    const cx = e.target.closest("[data-cancel-edit]");
+    if (cx) { editing.delete(cx.dataset.cancelEdit); render(); return; }
+    const cp = e.target.closest("[data-compose]");
+    if (cp) { composing.add(cp.dataset.compose); render(); return; }
+    const mo = e.target.closest("[data-manual]");
+    if (mo) { menuFor = null; manual.add(mo.dataset.manual); render(); return; }
+    const mc = e.target.closest("[data-cancel-manual]");
+    if (mc) { manual.delete(mc.dataset.cancelManual); render(); return; }
+    const ms = e.target.closest("[data-save-manual]");
+    if (ms) {
+      const id = ms.dataset.saveManual, c = find(id), sel = k => listEl.querySelector(`[data-m-${k}="${CSS.escape(id)}"]`);
+      const status = MANUAL_STATUS[sel("status").value];
+      const insurer = sel("insurer").value.trim(), note = sel("note").value.trim();
+      if (status.group !== "none" && !insurer) { toast("Add the insurer name"); return; }
+      c.insurer = status.group === "none" ? "Self-pay" : insurer;
+      c.group = status.group; c.cov = status.cov; c.manual = true;
+      c.note = `${status.label}. Updated manually by M.${note ? ` Note: ${note}` : ""}`;
+      delete c.actions; delete c.msg; delete c.sent; delete c.missing; composing.delete(id);
+      c.steps = c.steps.filter(st => st[0] !== "person" && st[0] !== "wait" && st[0] !== "todo");
+      c.steps.push(["done", `Updated manually by M.: ${status.label}${c.group !== "none" ? ` · ${c.insurer}` : ""}${note ? ` · “${note}”` : ""}`, "Mar 18, 9:10 AM"]);
+      manual.delete(id); render(); toast("Insurance status updated"); return;
+    }
+    const cc = e.target.closest("[data-cancel-compose]");
+    if (cc) { const c = find(cc.dataset.cancelCompose); delete c.picked; delete c.draft; composing.delete(cc.dataset.cancelCompose); render(); return; }
+    const sr = e.target.closest("[data-send-request]");
+    if (sr) {
+      const id = sr.dataset.sendRequest, c = find(id);
+      const picked = c.picked || c.missing;
+      const text = listEl.querySelector(`[data-text="${CSS.escape(id)}"]`).value.trim();
+      if (!picked.length || !text) { toast("Pick at least one detail to ask for"); return; }
+      c.group = "waiting";
+      c.note = `Asked for: ${picked.join(", ").toLowerCase()}. Waiting for reply.`;
+      c.msg = text; c.sent = true;
+      c.steps = c.steps.filter(st => st[0] !== "person");
+      c.steps.splice(c.steps.length - (c.steps.at(-1)?.[0] === "todo" ? 1 : 0), 0, ["done", "Request sent to patient by text", "Mar 18, 9:05 AM"], ["wait", "Waiting for patient reply", ""]);
+      composing.delete(id); delete c.picked; delete c.draft;
+      render(); toast(`Request sent to ${c.patient}`); return;
+    }
+    const a = e.target.closest("[data-act]");
+    if (!a) return;
+    const c = find(a.dataset.id);
+    if (c && a.dataset.act === "Send this message") {
+      c.sent = true; c.group = "waiting";
+      c.note = c.note.replace(/ Send this message to the patient:$/, " Message sent, waiting for reply.");
+      c.steps = c.steps.filter(st => st[0] !== "person");
+      c.steps.push(["done", "Message sent to patient", "Mar 18, 9:05 AM"], ["wait", "Waiting for patient reply", ""]);
+      render(); toast(`Message sent to ${c.patient}`); return;
+    }
+    toast(`“${a.dataset.act}” is not wired up in this prototype`);
+  });
+  render();
+</script>
+</body>
+</html>
