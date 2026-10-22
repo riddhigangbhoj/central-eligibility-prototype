@@ -161,6 +161,10 @@
   [data-group="verified"]  { --c: var(--g-verified);  --soft: var(--g-verified-soft);  --line: var(--g-verified-line);  --tint: #f9fdfb; }
   [data-group="missing"]   { --c: var(--g-missing);   --soft: var(--g-missing-soft);   --line: var(--g-missing-line);   --tint: #fffdf8; }
   [data-group="waiting"]   { --c: var(--g-waiting);   --soft: var(--g-waiting-soft);   --line: var(--g-waiting-line);   --tint: #fcfbff; }
+  [data-group="completed"] { --c: var(--g-verified);  --soft: var(--g-verified-soft);  --line: var(--g-verified-line);  --tint: #f9fdfb; }
+  [data-group="confirm"]   { --c: var(--g-attention); --soft: var(--g-attention-soft); --line: var(--g-attention-line); --tint: #fffcf6; }
+  [data-group="cancelled"] { --c: var(--g-none);      --soft: var(--g-none-soft);      --line: var(--g-none-line);      --tint: #fbfbfc; }
+  [data-group="noshow"]    { --c: var(--g-coverage);  --soft: var(--g-coverage-soft);  --line: var(--g-coverage-line);  --tint: #fffafa; }
   [data-group="none"]      { --c: var(--g-none);      --soft: var(--g-none-soft);      --line: var(--g-none-line);      --tint: #fbfbfc; }
 
   @media (max-width: 900px) {
@@ -278,6 +282,11 @@
     waiting:   { label: "Waiting for patient response" },
     verified:  { label: "Verified" },
     none:      { label: "Self-pay" },
+    // Past visits: how each booking ended.
+    completed: { label: "Completed" },
+    confirm:   { label: "Confirm visit" },
+    cancelled: { label: "Cancelled" },
+    noshow:    { label: "No-show" },
   };
   // Sections on the page; "Needs attention" holds both statuses staff must act on. Cards inside are earliest visit first.
   const SECTIONS = [
@@ -286,7 +295,16 @@
     { key: "verified",  label: "Verified", groups: ["verified"] },
     { key: "none",      label: "Self-pay", groups: ["none"] },
   ];
-  const sectionOf = c => SECTIONS.find(sec => sec.groups.includes(c.group)).key;
+  // Past tab: a visit is Completed when it is checked out in the EHR. If the EHR has no check-out by end of day,
+  // it waits in "Confirm visit" until staff mark it completed or no-show.
+  const PAST_SECTIONS = [
+    { key: "confirm",   label: "Confirm visit", groups: ["confirm"] },
+    { key: "completed", label: "Completed", groups: ["completed"] },
+    { key: "cancelled", label: "Cancelled", groups: ["cancelled"] },
+    { key: "noshow",    label: "No-show", groups: ["noshow"] },
+  ];
+  const sections = () => tab === "upcoming" ? SECTIONS : PAST_SECTIONS;
+  const sectionOf = c => sections().find(sec => sec.groups.includes(c.group)).key;
 
   // Details staff can ask the patient for; message is generated from the ticked items and stays editable.
   const ASKABLE = ["Insurance company name", "Member ID", "Photo of insurance card (front and back)", "Policyholder's name and date of birth", "Group number"];
@@ -298,6 +316,10 @@
   const COVERAGE = { P1: "unverified",
                      A1: "active", A4: "active", A6: "active", I1: "inactive", I2: "inactive" };
   const COVERAGE_LABEL = { active: "Active", inactive: "Inactive", unverified: "Yet to be verified" };
+  // Prototype clock: Mar 18, 3:00 PM. Staff can mark a visit completed or no-show only once its start time has passed.
+  const NOW = 318.15;
+  const started = c => c.sort <= NOW;
+  const END_LABEL = { verified: "Eligibility verified", none: "Self-pay" };
   const covOf = c => c.cov !== undefined ? c.cov : COVERAGE[c.code];
 
   // Manual override (backup when Central AI can't get an answer, e.g. staff called the insurer).
@@ -310,6 +332,18 @@
 
   // steps: [state, text, when] — state: done | fail | wait | person | todo
   const CASES = [
+    { code: "T2", group: "coverage", patient: "Hannah Lee", visit: "New patient visit", date: "Today", sort: 318.155, time: "3:30 PM",
+      insurer: "Not given", cov: "unverified", line: "Member ID missing",
+      note: "Asked for member ID and card photo at 1:15 PM. No reply yet. Visit is today: check the card at the desk.",
+      steps: [["fail","Member ID not given on call","Mar 18, 1:10 PM"],["done","Request sent to patient by text","Mar 18, 1:15 PM"],["wait","Waiting for patient reply",""],["person","Visit today: check card at the desk",""]] },
+    { code: "T3", group: "coverage", patient: "Marcus Bell", visit: "Follow-up visit", date: "Today", sort: 318.165, time: "4:30 PM",
+      insurer: "Humana", cov: "unverified", line: "Insurer did not answer",
+      note: "Humana did not answer the eligibility check. Retried twice. Check the card at the desk or update manually.",
+      steps: [["done","Details captured on call","Mar 17, 11:00 AM"],["fail","Eligibility check: no answer from Humana","Mar 17, 11:01 AM"],["fail","Retry: no answer","Mar 18, 8:00 AM"],["fail","Retry: no answer","Mar 18, 12:00 PM"],["person","Check card at the desk or update manually",""]] },
+    { code: "T1", group: "verified", patient: "Grace Kim", visit: "Follow-up visit", date: "Today", sort: 318.083, time: "8:30 AM",
+      insurer: "Aetna", cov: "active", line: "Active · $30 copay",
+      note: "Eligibility verified. Patient is in the clinic now.",
+      steps: [["done","Eligibility verified: Active","Mar 16, 10:00 AM"],["done","Written to EHR · read back ✓","Mar 16, 10:01 AM"],["done","Checked in","Mar 18, 8:25 AM"],["todo","Check-out in EHR, or staff mark completed",""]] },
     { code: "P1", group: "missing", patient: "Daniel Okafor", visit: "Follow-up visit", date: "Mar 21", sort: 321.10, time: "10:00 AM",
       insurer: "Not given", line: "Insurer and member ID missing",
       note: "Insurance company and member ID weren't given on the call.", missing: ["Insurance company name", "Member ID", "Photo of insurance card (front and back)"],
@@ -343,14 +377,39 @@
       steps: [["done","Insurer reply: Not yet active · starts Apr 1","Mar 18, 8:10 AM"],["person","Approve message · manager",""]] },
   ];
 
+  // Each past booking shows how its insurance case ended. "end" is the final eligibility result.
   const PAST = [
-    { code: "A1", group: "verified", patient: "Laura Kim", visit: "Follow-up visit", date: "Mar 12", sort: 312.10, time: "10:00 AM",
-      insurer: "Aetna", line: "Active · $25 copay · recorded in EHR", note: "Verified before the visit (ref TRN-87011). Visit completed.",
-      steps: [["done","Insurer reply: Active","Mar 10, 9:00 AM"],["done","Written to EHR · read back ✓","Mar 10, 9:01 AM"]] },
-    { code: "P3", group: "none", patient: "Omar Haddad", visit: "New patient visit", date: "Mar 11", sort: 311.14, time: "2:00 PM",
-      insurer: "Self-pay", line: "Self-pay: no insurance check", note: "Self-pay visit. Completed.",
-      steps: [["done","Patient chose self-pay","Mar 9, 1:00 PM"]] },
+    { code: "C1", group: "confirm", patient: "Ben Turner", visit: "Follow-up visit", date: "Mar 17", sort: 317.16, time: "4:00 PM",
+      insurer: "UnitedHealthcare", cov: "active", end: "Eligibility verified",
+      note: "No check-out in the EHR for this visit. Did the patient come in?",
+      actions: ["Mark no-show", "Mark completed"],
+      steps: [["done","Eligibility verified: Active","Mar 15, 11:00 AM"],["done","Visit time passed","Mar 17, 4:30 PM"],["fail","No check-out found in EHR by end of day","Mar 17, 8:00 PM"],["person","Staff confirm: completed or no-show",""]] },
+    { code: "C2", group: "noshow", patient: "Priya Shah", visit: "New patient visit", date: "Mar 17", sort: 317.10, time: "10:00 AM",
+      insurer: "Aetna", cov: "active", end: "Eligibility verified",
+      note: "Eligibility was verified. Patient did not come in.",
+      steps: [["done","Eligibility verified: Active","Mar 14, 9:30 AM"],["done","Marked no-show by M.","Mar 17, 5:10 PM"]] },
+    { code: "C3", group: "completed", patient: "Jake Morris", visit: "Follow-up visit", date: "Mar 16", sort: 316.09, time: "9:30 AM", manual: true,
+      insurer: "Cigna", cov: "active", end: "Entered manually at the desk",
+      note: "Patient never sent details. Card checked at the desk and entered manually. Visit completed.",
+      steps: [["fail","Insurance details missing","Mar 12, 3:00 PM"],["done","Details requested by text + 1 reminder","Mar 12 – Mar 14"],["fail","No reply before visit","Mar 15, 9:30 AM"],["done","Card checked at desk, entered manually by M.","Mar 16, 9:20 AM"],["done","Checked out in EHR","Mar 16, 10:05 AM"]] },
+    { code: "C4", group: "completed", patient: "Carlos Vega", visit: "New patient visit", date: "Mar 14", sort: 314.11, time: "11:00 AM",
+      insurer: "Humana", cov: "active", end: "Active, out-of-network",
+      note: "Out-of-network. Patient agreed to the $180 estimate and kept the visit. Visit completed.",
+      steps: [["done","Eligibility checked: Active · out-of-network","Mar 11, 2:00 PM"],["done","Cost message sent to patient","Mar 11, 2:05 PM"],["done","Patient replied: keep the visit","Mar 11, 4:40 PM"],["done","Checked out in EHR","Mar 14, 11:50 AM"]] },
+    { code: "C5", group: "cancelled", patient: "Emma Ruiz", visit: "Follow-up visit", date: "Mar 13", sort: 313.14, time: "2:00 PM",
+      insurer: "Cigna", cov: "inactive", end: "Coverage ended",
+      note: "Coverage ended. Patient had no new insurance and cancelled.",
+      steps: [["fail","Eligibility checked: Inactive · ended Jan 31","Mar 10, 10:00 AM"],["done","Message sent to patient","Mar 10, 10:10 AM"],["done","Patient replied: cancel the visit","Mar 10, 6:15 PM"],["done","Booking cancelled","Mar 10, 6:16 PM"]] },
+    { code: "A1", group: "completed", patient: "Laura Kim", visit: "Follow-up visit", date: "Mar 12", sort: 312.10, time: "10:00 AM",
+      insurer: "Aetna", cov: "active", end: "Eligibility verified",
+      note: "Eligibility verified before the visit. Visit completed.",
+      steps: [["done","Eligibility verified: Active","Mar 10, 9:00 AM"],["done","Written to EHR · read back ✓","Mar 10, 9:01 AM"],["done","Checked out in EHR","Mar 12, 10:45 AM"]] },
+    { code: "P3", group: "completed", patient: "Omar Haddad", visit: "New patient visit", date: "Mar 11", sort: 311.14, time: "2:00 PM",
+      insurer: "Self-pay", cov: null, end: "Self-pay",
+      note: "Self-pay visit. Completed.",
+      steps: [["done","Patient chose self-pay","Mar 9, 1:00 PM"],["done","Checked out in EHR","Mar 11, 2:50 PM"]] },
   ];
+
 
   let tab = "upcoming";
   let filter = "all";
@@ -372,7 +431,7 @@
     const count = k => rows.filter(c => sectionOf(c) === k).length;
     chipsEl.innerHTML =
       `<button class="chip ${filter === "all" ? "on" : ""}" data-g="all">All <span class="count">${rows.length}</span></button>` +
-      SECTIONS.map(sec => `
+      sections().map(sec => `
         <button class="chip ${filter === sec.key ? "on" : ""}" data-g="${sec.key}" data-group="${sec.key}">
           <span class="dot"></span>${sec.label} <span class="count">${count(sec.key)}</span>
         </button>`).join("");
@@ -396,24 +455,27 @@
               <span class="lbl">${c.insurer === "Self-pay" ? "Self-pay" : `Insurer: ${c.insurer}`}</span>
               ${covOf(c) ? `<span class="lbl ${covOf(c)}">${COVERAGE_LABEL[covOf(c)]}</span>` : ""}
               ${c.manual ? `<span class="lbl">Updated manually</span>` : ""}
+              ${c.end ? `<span class="lbl">Ended as: ${c.end}</span>` : ""}
             </div>
           </div>
           <div class="actions">
             <span class="badge-g">${GROUPS[c.group].label}</span>
-            ${tab === "upcoming" && c.group !== "missing" && c.group !== "waiting" ? `<button class="btn" data-act="Reschedule">Reschedule</button><button class="btn danger" data-act="Cancel">Cancel</button>` : ""}
+            ${tab === "upcoming" && started(c) ? `<button class="btn" data-finish="noshow" data-id="${id}">No-show</button><button class="btn primary" data-finish="completed" data-id="${id}">Mark completed</button>` : ""}
+            ${tab === "upcoming" && !started(c) && c.group !== "missing" && c.group !== "waiting" ? `<button class="btn" data-act="Reschedule">Reschedule</button><button class="btn danger" data-act="Cancel">Cancel</button>` : ""}
             ${tab === "upcoming" ? `
               <div class="menu-wrap card-menu">
                 <button class="kebab" data-menu="card:${id}" aria-label="More options">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
                 </button>
-                ${menuFor === "card:" + id ? `<div class="menu"><button data-manual="${id}">Update insurance manually</button></div>` : ""}
+                ${menuFor === "card:" + id ? `<div class="menu">
+                  <button data-manual="${id}">Update insurance manually</button></div>` : ""}
               </div>` : ""}
           </div>
         </div>
         ${manual.has(id) ? manualForm(c, id) : `<div class="note">${c.note}
           ${c.msg ? msgBlock(c, id) : ""}
           ${c.group === "missing" && tab === "upcoming" ? requestBlock(c, id) : ""}
-          ${c.actions && tab === "upcoming" && !c.sent && !editing.has(id) ? `<div class="note-actions">${c.actions.map((a, i) =>
+          ${c.actions && !c.sent && !editing.has(id) ? `<div class="note-actions">${c.actions.map((a, i) =>
             `<button class="btn ${i === c.actions.length - 1 ? "primary" : ""}" data-act="${a}" data-id="${id}">${a}</button>`).join("")}</div>` : ""}
         </div>`}
         <button class="details-toggle" data-toggle="${id}" aria-expanded="${isOpen}">${isOpen ? "Hide" : "View"} details ${icon("chev-down")}</button>
@@ -502,10 +564,10 @@
     if (!rows.length) { listEl.innerHTML = `<div class="empty">No bookings found</div>`; return; }
     // "All" is one list by visit date; a chip shows just that section.
     if (filter === "all") {
-      listEl.innerHTML = `<div class="list all">${[...rows].sort((a, b) => a.sort - b.sort).map(card).join("")}</div>`;
+      listEl.innerHTML = `<div class="list all">${[...rows].sort((a, b) => tab === "past" ? b.sort - a.sort : a.sort - b.sort).map(card).join("")}</div>`;
       return;
     }
-    listEl.innerHTML = SECTIONS.map(sec => {
+    listEl.innerHTML = sections().map(sec => {
       const inGroup = rows.filter(c => sectionOf(c) === sec.key).sort((a, b) => a.sort - b.sort);
       if (!inGroup.length) return "";
       return `
@@ -550,7 +612,7 @@
   listEl.addEventListener("click", e => {
     const t = e.target.closest("[data-toggle]");
     if (t) { const id = t.dataset.toggle; open.has(id) ? open.delete(id) : open.add(id); render(); return; }
-    const find = id => CASES.find(x => x.code + x.patient === id);
+    const find = id => data().find(x => x.code + x.patient === id);
     const m = e.target.closest("[data-menu]");
     if (m) { menuFor = menuFor === m.dataset.menu ? null : m.dataset.menu; render(); return; }
     const ed = e.target.closest("[data-edit]");
@@ -565,6 +627,19 @@
     if (cx) { editing.delete(cx.dataset.cancelEdit); render(); return; }
     const cp = e.target.closest("[data-compose]");
     if (cp) { composing.add(cp.dataset.compose); render(); return; }
+    // Manual end of a visit: moves the booking from Upcoming to Past.
+    const fin = e.target.closest("[data-finish]");
+    if (fin) {
+      const c = find(fin.dataset.id), done = fin.dataset.finish === "completed";
+      CASES.splice(CASES.indexOf(c), 1);
+      c.end = END_LABEL[c.group] || "Not verified before visit";
+      c.group = fin.dataset.finish;
+      c.note = done ? "Marked completed by M." : "Marked no-show by M.";
+      c.steps = c.steps.filter(st => st[0] === "done");
+      c.steps.push(["done", `${done ? "Marked appointment completed" : "Marked no-show"} by M.`, "Mar 18, 9:20 AM"]);
+      delete c.actions; delete c.msg; PAST.push(c); menuFor = null;
+      render(); toast(`${c.patient} moved to Past: ${done ? "completed" : "no-show"}`); return;
+    }
     const mo = e.target.closest("[data-manual]");
     if (mo) { menuFor = null; manual.add(mo.dataset.manual); render(); return; }
     const mc = e.target.closest("[data-cancel-manual]");
@@ -609,8 +684,18 @@
       c.steps.push(["done", "Message sent to patient", "Mar 18, 9:05 AM"], ["wait", "Waiting for patient reply", ""]);
       render(); toast(`Message sent to ${c.patient}`); return;
     }
+    if (c && (a.dataset.act === "Mark completed" || a.dataset.act === "Mark no-show")) {
+      const done = a.dataset.act === "Mark completed";
+      c.group = done ? "completed" : "noshow"; delete c.actions;
+      c.note = done ? "Confirmed by M.: patient came in. Visit completed." : "Confirmed by M.: patient did not come in.";
+      c.steps = c.steps.filter(st => st[0] !== "person");
+      c.steps.push(["done", `${done ? "Marked completed" : "Marked no-show"} by M.`, "Mar 18, 9:15 AM"]);
+      render(); toast(`${c.patient}: ${done ? "completed" : "no-show"}`); return;
+    }
     toast(`“${a.dataset.act}” is not wired up in this prototype`);
   });
+  // Links from Your Day open Bookings filtered to one patient: index.html?patient=Name
+  q.value = new URLSearchParams(location.search).get("patient") || "";
   render();
 </script>
 </body>

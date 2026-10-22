@@ -23,8 +23,8 @@
     --grey: #c3c8cf;
 
     /* Areas changed for the insurance prototype: very subtle tint */
-    --ours: #fbf9ff;
-    --ours-line: #ebe5fb;
+    --ours: #fffdf3;
+    --ours-line: #f3ecc9;
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); font-size: 15px; }
@@ -131,6 +131,9 @@
   details.names[open] summary .i { transform: rotate(180deg); }
   details.names summary .n { color: var(--text); }
   details.names ul { list-style: none; margin: 10px 0 0; padding: 0; }
+  .pt-link { display: flex; align-items: center; gap: 12px; flex: 1; text-decoration: none; border-radius: 8px; }
+  .pt-link .go { margin-left: auto; font-size: 13px; color: var(--blue); }
+  .pt-link:hover { color: var(--blue); }
   details.names li { display: flex; align-items: center; gap: 12px; padding: 10px 4px; font-size: 16px; }
   details.names li + li { border-top: 1px solid var(--border); }
   .circle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #c9cdd3; flex-shrink: 0; }
@@ -260,7 +263,7 @@
         <section class="panel ours">
           <div class="panel-head">
             <div class="doc"><svg class="i"><use href="#file-check"/></svg></div>
-            <div><h2>Your Afternoon Summary</h2><div class="sub">What you've done so far today</div></div>
+            <div><h2>Your Afternoon Summary</h2><div class="sub">Insurance eligibility verification: what you've done so far today</div></div>
             <div class="tools"><svg class="i"><use href="#edit"/></svg><svg class="i" style="color:var(--icon)"><use href="#chev-down"/></svg></div>
           </div>
           <div class="section-label">WORK UPDATES</div>
@@ -287,11 +290,11 @@
             <div><h3 id="day-title"></h3><p id="day-sub"></p></div>
           </div>
           <details class="names" open>
-            <summary>Yet to be verified <span class="n" id="unv-count"></span><svg class="i"><use href="#chev-down"/></svg></summary>
+            <summary>Eligibility yet to be verified <span class="n" id="unv-count"></span><svg class="i"><use href="#chev-down"/></svg></summary>
             <ul id="unv"></ul>
           </details>
           <details class="names">
-            <summary>Verified <span class="n" id="ver-count"></span><svg class="i"><use href="#chev-down"/></svg></summary>
+            <summary>Eligibility verified <span class="n" id="ver-count"></span><svg class="i"><use href="#chev-down"/></svg></summary>
             <ul id="ver"></ul>
           </details>
         </div>
@@ -304,19 +307,21 @@
   // Prototype "today": Wed Mar 18, 2026, afternoon. All patients and data are synthetic.
   // Actions the receptionist took today. dot colour: green = done, purple = waiting on patient, grey = info.
   const UPDATES = [
-    { dot: "var(--green)",  text: "Called Aetna and updated Ethan Brooks's insurance manually", tag: "VERIFIED", time: "2:40 PM" },
-    { dot: "var(--purple)", text: "Asked Hannah Lee for her member ID and insurance card photo", tag: "AWAITING REPLY", time: "1:15 PM" },
-    { dot: "var(--green)",  text: "Checked new insurance card for Liam Chen at the desk", tag: "VERIFIED", time: "11:50 AM" },
+    { dot: "var(--green)",  text: "Entered Ethan Brooks's insurance details manually", tag: "ELIGIBILITY VERIFIED", time: "2:40 PM" },
+    { dot: "var(--purple)", text: "Asked Hannah Lee for her member ID and insurance card photo for eligibility verification", tag: "AWAITING REPLY", time: "1:15 PM" },
+    { dot: "var(--green)",  text: "Entered Liam Chen's new insurance card at the desk", tag: "ELIGIBILITY VERIFIED", time: "11:50 AM" },
     { dot: "var(--grey)",   text: "Marked Sofia Reyes as self-pay", tag: "SELF-PAY", time: "10:30 AM" },
     { dot: "var(--green)",  text: "Collected copays at check-in for 4 patients", tag: "DONE", time: "9:00 AM – 12 PM" },
   ];
 
   // Same cases as "Needs attention" on the Bookings page, earliest visit first.
   const TODOS = [
-    { patient: "Robert Diaz",   date: "Mar 20", time: "10:00 AM", status: "coverage", label: "Insurance not verified", why: "Coverage ended Feb 28. Message to patient is ready to send." },
+    { patient: "Hannah Lee",    date: "Today",  time: "3:30 PM",  status: "coverage", label: "Eligibility not verified", why: "Member ID still missing. Check the card at the desk." },
+    { patient: "Marcus Bell",   date: "Today",  time: "4:30 PM",  status: "coverage", label: "Eligibility not verified", why: "Humana did not answer. Check the card at the desk or update manually." },
+    { patient: "Robert Diaz",   date: "Mar 20", time: "10:00 AM", status: "coverage", label: "Eligibility not verified", why: "Coverage ended Feb 28. Message to patient is ready to send." },
     { patient: "Daniel Okafor", date: "Mar 21", time: "10:00 AM", status: "missing",  label: "Details missing",        why: "Insurance company and member ID not given. Request details from patient." },
-    { patient: "Peter Walsh",   date: "Mar 22", time: "3:30 PM",  status: "coverage", label: "Insurance not verified", why: "Clinic is out-of-network. Message to patient is ready to send." },
-    { patient: "Nina Patel",    date: "Mar 26", time: "11:30 AM", status: "coverage", label: "Insurance not verified", why: "Coverage starts Apr 1, after the visit. Message to patient is ready to send." },
+    { patient: "Peter Walsh",   date: "Mar 22", time: "3:30 PM",  status: "coverage", label: "Eligibility not verified", why: "Clinic is out-of-network. Message to patient is ready to send." },
+    { patient: "Nina Patel",    date: "Mar 26", time: "11:30 AM", status: "coverage", label: "Eligibility not verified", why: "Coverage starts Apr 1, after the visit. Message to patient is ready to send." },
   ];
 
   // Patients coming in today.
@@ -326,6 +331,7 @@
     { name: "Ava Thompson", ok: true }, { name: "Noah Patel", ok: true }, { name: "Chloe Martin", ok: true },
   ];
 
+  const bookingLink = name => `index.html?patient=${encodeURIComponent(name)}`;
   document.getElementById("updates").innerHTML = UPDATES.map(u =>
     `<li><span class="dot" style="--c:${u.dot}"></span><span>${u.text} <span class="tag">${u.tag}</span></span><span class="time">${u.time}</span></li>`).join("");
 
@@ -334,16 +340,18 @@
     <div class="todo">
       <div class="when"><div class="d">${t.date}</div><div class="t">${t.time}</div></div>
       <div><div class="name">${t.patient}</div><div class="why">${t.why}</div><span class="status ${t.status}">${t.label}</span></div>
-      <a class="open-btn" href="index.html">Open in Bookings</a>
+      <a class="open-btn" href="${bookingLink(t.patient)}">Open in Bookings</a>
     </div>`).join("");
 
   const unv = TODAY.filter(p => !p.ok), ver = TODAY.filter(p => p.ok);
   document.getElementById("ring").textContent = unv.length;
-  document.getElementById("day-title").textContent = `${unv.length} of ${TODAY.length} patients yet to be verified`;
+  document.getElementById("day-title").textContent = `${unv.length} of ${TODAY.length} patients: insurance eligibility yet to be verified`;
   document.getElementById("day-sub").textContent = `${TODAY.length} patients coming in today`;
   document.getElementById("unv-count").textContent = unv.length;
   document.getElementById("ver-count").textContent = ver.length;
-  const li = p => `<li><span class="circle${p.ok ? " ok" : ""}"></span>${p.name}</li>`;
+  const li = p => p.ok
+    ? `<li><span class="circle ok"></span>${p.name}</li>`
+    : `<li><a class="pt-link" href="${bookingLink(p.name)}"><span class="circle"></span>${p.name}<span class="go">Open in Bookings →</span></a></li>`;
   document.getElementById("unv").innerHTML = unv.map(li).join("");
   document.getElementById("ver").innerHTML = ver.map(li).join("");
 </script>
