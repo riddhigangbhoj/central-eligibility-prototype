@@ -308,7 +308,7 @@
   // Actions the receptionist took today. dot colour: green = done, purple = waiting on patient, grey = info.
   const UPDATES = [
     { dot: "var(--green)",  text: "Entered Ethan Brooks's insurance details manually", tag: "ELIGIBILITY VERIFIED", time: "2:40 PM" },
-    { dot: "var(--purple)", text: "Asked Hannah Lee for her member ID and insurance card photo for eligibility verification", tag: "AWAITING REPLY", time: "1:15 PM" },
+    { dot: "var(--purple)", text: "Central texted Hannah Lee automatically for her member ID and insurance card photo", tag: "AWAITING REPLY", time: "1:15 PM" },
     { dot: "var(--green)",  text: "Entered Liam Chen's new insurance card at the desk", tag: "ELIGIBILITY VERIFIED", time: "11:50 AM" },
     { dot: "var(--grey)",   text: "Marked Sofia Reyes as self-pay", tag: "SELF-PAY", time: "10:30 AM" },
     { dot: "var(--green)",  text: "Collected copays at check-in for 4 patients", tag: "DONE", time: "9:00 AM – 12 PM" },
@@ -316,19 +316,16 @@
 
   // Same cases as "Needs attention" on the Bookings page, earliest visit first.
   const TODOS = [
-    { patient: "Hannah Lee",    date: "Today",  time: "3:30 PM",  status: "coverage", label: "Eligibility not verified", why: "Member ID still missing. Check the card at the desk and add the details to run the check." },
-    { patient: "Marcus Bell",   date: "Today",  time: "4:30 PM",  status: "coverage", label: "Eligibility not verified", why: "Humana did not answer. Check the card at the desk or update manually." },
-    { patient: "Robert Diaz",   date: "Mar 20", time: "10:00 AM", status: "coverage", label: "Eligibility not verified", why: "Coverage ended Feb 28. Message to patient is ready to send." },
-    { patient: "Daniel Okafor", date: "Mar 21", time: "10:00 AM", status: "missing",  label: "Details missing",        why: "Minimum information to run the check is not captured. Add the details or request them from the patient." },
-    { patient: "Peter Walsh",   date: "Mar 22", time: "3:30 PM",  status: "coverage", label: "Eligibility not verified", why: "Clinic is out-of-network. Message to patient is ready to send." },
-    { patient: "Nina Patel",    date: "Mar 26", time: "11:30 AM", status: "coverage", label: "Eligibility not verified", why: "Coverage starts Apr 1, after the visit. Message to patient is ready to send." },
+    { patient: "Hannah Lee",    date: "Today",  time: "3:30 PM",  status: "coverage", label: "Needs attention", why: "Member ID still missing. Check the card at the desk and add the details to run the check." },
+    { patient: "Robert Diaz",   date: "Mar 20", time: "10:00 AM", status: "coverage", label: "Needs attention", why: "Coverage ended Feb 28. Message to patient is ready to send." },
+    { patient: "Peter Walsh",   date: "Mar 22", time: "3:30 PM",  status: "coverage", label: "Needs attention", why: "Clinic is out-of-network. Message to patient is ready to send." },
+    { patient: "Nina Patel",    date: "Mar 26", time: "11:30 AM", status: "coverage", label: "Needs attention", why: "Coverage starts Apr 1, after the visit. Message to patient is ready to send." },
   ];
 
   // Patients coming in today.
   const TODAY = [
     { name: "Grace Kim", ok: true }, { name: "Ethan Brooks", ok: true }, { name: "Hannah Lee", ok: false },
-    { name: "Liam Chen", ok: true }, { name: "Sofia Reyes", ok: true }, { name: "Marcus Bell", ok: false },
-    { name: "Ava Thompson", ok: true }, { name: "Noah Patel", ok: true }, { name: "Chloe Martin", ok: true },
+    { name: "Liam Chen", ok: true }, { name: "Sofia Reyes", ok: true }, { name: "Ava Thompson", ok: true }, { name: "Noah Patel", ok: true }, { name: "Chloe Martin", ok: true },
   ];
 
   const bookingLink = name => `index.html?patient=${encodeURIComponent(name)}`;
