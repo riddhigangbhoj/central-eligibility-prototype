@@ -131,6 +131,10 @@
   .manual-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; color: var(--icon); }
   .manual-form input, .manual-form select { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); }
   .manual-form .full { margin-bottom: 4px; }
+  .min-note { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--g-missing-soft); border: 1px solid var(--g-missing-line); font-size: 13px; color: #6b4f12; line-height: 1.45; }
+  .dep-fields { display: none; margin-top: 10px; }
+  .manual-form:has(.dep-check:checked) .dep-fields { display: grid; }
+  .captured { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
   .sent { margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--g-verified); }
   .note-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -322,6 +326,9 @@
   const END_LABEL = { verified: "Eligibility verified", none: "Self-pay" };
   const covOf = c => c.cov !== undefined ? c.cov : COVERAGE[c.code];
 
+  // Clinic's accepted-insurer list (set up once by the practice manager); used as suggestions when staff add details.
+  const ACCEPTED = ["Aetna", "BCBS of Texas", "Cigna", "Humana", "Medicare", "Oscar Health", "UnitedHealthcare"];
+
   // Manual override (backup when Central AI can't get an answer, e.g. staff called the insurer).
   const MANUAL_STATUS = {
     active:     { label: "Verified – coverage active", group: "verified", cov: "active" },
@@ -333,8 +340,8 @@
   // steps: [state, text, when] — state: done | fail | wait | person | todo
   const CASES = [
     { code: "T2", group: "coverage", patient: "Hannah Lee", visit: "New patient visit", date: "Today", sort: 318.155, time: "3:30 PM",
-      insurer: "Not given", cov: "unverified", line: "Member ID missing",
-      note: "Asked for member ID and card photo at 1:15 PM. No reply yet. Visit is today: check the card at the desk.",
+      insurer: "Not given", cov: "unverified", line: "Member ID missing", missing: ["Insurance company name", "Member ID", "Photo of insurance card (front and back)"],
+      note: "Minimum information to run the insurance check is not captured. Asked for member ID and card photo at 1:15 PM, no reply yet. Visit is today: check the card at the desk and add the details.",
       steps: [["fail","Member ID not given on call","Mar 18, 1:10 PM"],["done","Request sent to patient by text","Mar 18, 1:15 PM"],["wait","Waiting for patient reply",""],["person","Visit today: check card at the desk",""]] },
     { code: "T3", group: "coverage", patient: "Marcus Bell", visit: "Follow-up visit", date: "Today", sort: 318.165, time: "4:30 PM",
       insurer: "Humana", cov: "unverified", line: "Insurer did not answer",
@@ -346,7 +353,7 @@
       steps: [["done","Eligibility verified: Active","Mar 16, 10:00 AM"],["done","Written to EHR · read back ✓","Mar 16, 10:01 AM"],["done","Checked in","Mar 18, 8:25 AM"],["todo","Check-out in EHR, or staff mark completed",""]] },
     { code: "P1", group: "missing", patient: "Daniel Okafor", visit: "Follow-up visit", date: "Mar 21", sort: 321.10, time: "10:00 AM",
       insurer: "Not given", line: "Insurer and member ID missing",
-      note: "Insurance company and member ID weren't given on the call.", missing: ["Insurance company name", "Member ID", "Photo of insurance card (front and back)"],
+      note: "Minimum information to run the insurance check is not captured: insurance company and member ID weren't given on the call.", missing: ["Insurance company name", "Member ID", "Photo of insurance card (front and back)"],
       steps: [["done","Booked on call","Mar 17, 4:10 PM"],["fail","Insurance company and member ID not given","Mar 17, 4:10 PM"],["person","Request details from patient",""],["todo","Central AI checks insurance when details arrive",""]] },
     { code: "P3", group: "none", patient: "Tom Becker", visit: "New patient visit", date: "Mar 24", sort: 324.14, time: "2:00 PM",
       insurer: "Self-pay", line: "Self-pay: no insurance check",
@@ -417,6 +424,7 @@
   const editing = new Set();
   const composing = new Set();
   const manual = new Set();
+  const adding = new Set();
   let menuFor = null;
   const listEl = document.getElementById("list");
   const chipsEl = document.getElementById("chips");
@@ -468,13 +476,15 @@
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
                 </button>
                 ${menuFor === "card:" + id ? `<div class="menu">
+                  <button data-add="${id}">Edit insurance details and re-run check</button>
                   <button data-manual="${id}">Update insurance manually</button></div>` : ""}
               </div>` : ""}
           </div>
         </div>
-        ${manual.has(id) ? manualForm(c, id) : `<div class="note">${c.note}
+        ${manual.has(id) ? manualForm(c, id) : adding.has(id) ? detailsForm(c, id) : `<div class="note">${c.note}
           ${c.msg ? msgBlock(c, id) : ""}
           ${c.group === "missing" && tab === "upcoming" ? requestBlock(c, id) : ""}
+          ${c.missing && c.group !== "missing" && tab === "upcoming" ? `<div class="note-actions"><button class="btn primary" data-add="${id}">Add details and run check</button></div>` : ""}
           ${c.actions && !c.sent && !editing.has(id) ? `<div class="note-actions">${c.actions.map((a, i) =>
             `<button class="btn ${i === c.actions.length - 1 ? "primary" : ""}" data-act="${a}" data-id="${id}">${a}</button>`).join("")}</div>` : ""}
         </div>`}
@@ -520,7 +530,7 @@
 
   // "Details missing" → staff tick what to ask for, edit the text, send → card moves to "Waiting for patient response".
   function requestBlock(c, id) {
-    if (!composing.has(id)) return `<div class="note-actions"><button class="btn primary" data-compose="${id}">Request details from patient</button></div>`;
+    if (!composing.has(id)) return `<div class="note-actions"><button class="btn" data-compose="${id}">Request details from patient</button><button class="btn primary" data-add="${id}">Add details and run check</button></div>`;
     const picked = c.picked || c.missing || [];
     return `
       <div class="compose">
@@ -533,6 +543,31 @@
         <div class="note-actions">
           <button class="btn" data-cancel-compose="${id}">Cancel</button>
           <button class="btn primary" data-send-request="${id}">Send to patient</button>
+        </div>
+      </div>`;
+  }
+
+  // Staff add the minimum details themselves (e.g. after calling the patient or checking the card at the desk); saving runs the check.
+  function detailsForm(c, id) {
+    const known = ["Not given", "Self-pay"].includes(c.insurer) ? "" : c.insurer;
+    return `
+      <div class="note manual-form">
+        <div class="compose-label">Add insurance details and run the check</div>
+        <div class="min-note">Minimum information needed to run the check: insurer, member ID, and the policyholder's name and date of birth if the patient is on someone else's plan.</div>
+        <div class="captured">Already captured on the call: ${esc(c.patient)} · date of birth · ${esc(c.visit)} on ${c.date}</div>
+        <datalist id="accepted">${ACCEPTED.map(a => `<option value="${a}">`).join("")}</datalist>
+        <div class="form-grid">
+          <label>Insurer<input type="text" list="accepted" data-d-insurer="${id}" value="${esc(known)}" placeholder="e.g. Aetna"></label>
+          <label>Member ID<input type="text" data-d-member="${id}" placeholder="e.g. W123456789"></label>
+        </div>
+        <label class="ask"><input type="checkbox" class="dep-check" data-d-dep="${id}"> Patient is on someone else's plan (dependant)</label>
+        <div class="form-grid dep-fields">
+          <label>Policyholder's name<input type="text" data-d-ph-name="${id}" placeholder="e.g. Sarah Okafor"></label>
+          <label>Policyholder's date of birth<input type="date" data-d-ph-dob="${id}"></label>
+        </div>
+        <div class="note-actions">
+          <button class="btn" data-cancel-add="${id}">Cancel</button>
+          <button class="btn primary" data-run-check="${id}">Save and run check</button>
         </div>
       </div>`;
   }
@@ -639,6 +674,27 @@
       c.steps.push(["done", `${done ? "Marked appointment completed" : "Marked no-show"} by M.`, "Mar 18, 9:20 AM"]);
       delete c.actions; delete c.msg; PAST.push(c); menuFor = null;
       render(); toast(`${c.patient} moved to Past: ${done ? "completed" : "no-show"}`); return;
+    }
+    const ad = e.target.closest("[data-add]");
+    if (ad) { menuFor = null; composing.delete(ad.dataset.add); adding.add(ad.dataset.add); render(); return; }
+    const ca = e.target.closest("[data-cancel-add]");
+    if (ca) { adding.delete(ca.dataset.cancelAdd); render(); return; }
+    const rc = e.target.closest("[data-run-check]");
+    if (rc) {
+      const id = rc.dataset.runCheck, c = find(id), val = k => listEl.querySelector(`[data-d-${k}="${CSS.escape(id)}"]`);
+      const insurer = val("insurer").value.trim(), member = val("member").value.trim(), dep = val("dep").checked;
+      if (!insurer || !member) { toast("Add the insurer and member ID to run the check"); return; }
+      if (dep && (!val("ph-name").value.trim() || !val("ph-dob").value)) { toast("Add the policyholder's name and date of birth"); return; }
+      // Prototype: the check comes back active within seconds.
+      c.insurer = insurer; c.group = "verified"; c.cov = "active"; c.line = "Active · $30 copay";
+      c.note = "Details added by M. Insurance check ran: coverage active, $30 copay. Copay texted to the patient.";
+      delete c.missing; delete c.msg; delete c.sent; delete c.actions; composing.delete(id);
+      c.steps = c.steps.filter(st => !["person", "wait", "todo"].includes(st[0]));
+      c.steps.push(["done", `Details added by M.: ${insurer} · member ID${dep ? " · policyholder" : ""}`, "Mar 18, 9:10 AM"],
+                   ["done", "Eligibility check sent", "Mar 18, 9:10 AM"],
+                   ["done", "Insurer reply: Active · $30 copay · ref TRN-91544", "Mar 18, 9:10 AM"],
+                   ["done", "Copay texted to patient", "Mar 18, 9:11 AM"]);
+      adding.delete(id); render(); toast(`Check ran for ${c.patient}: coverage active`); return;
     }
     const mo = e.target.closest("[data-manual]");
     if (mo) { menuFor = null; manual.add(mo.dataset.manual); render(); return; }
